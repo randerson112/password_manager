@@ -1,77 +1,97 @@
-from cryptography.fernet import Fernet
+import os
+import base64
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.fernet import Fernet, InvalidToken
 
 class CredentialManager:
     def __init__(self):
         self.key = None
+        self.salt = None
+        self.iterations = 390_000
         self.credential_file = None
         self.credential_dict = {}
 
-    # Creates a key for encrypting/decrypting
-    def create_key(self, path):
-        self.key = Fernet.generate_key()
-        with open(path, 'wb') as file:
-            file.write(self.key)
+    # Derive a Fernet key from password and salt
+    def _derive_key(self, password, salt):
+        # Hashing device
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=self.iterations,
+        )
 
-    # Loads an existing key from device
-    def load_key(self, path):
-        with open(path, 'rb') as file:
-            self.key = file.read()
+        # Use hash and salt to generate key from password
+        raw = kdf.derive(password.encode())
+        return base64.urlsafe_b64encode(raw)
 
-    # Create a credential file to store credential data
-    def create_credential_file(self, path, initial_values=None):
+    # Create a credential file with salt and optional initial values
+    def create_credential_file(self, path, master_password, initial_values=None):
         self.credential_file = path
+        self.salt = os.urandom(16)
+        self.key = self._derive_key(master_password, self.salt)
 
-        # Add initial credentials if given
-        if initial_values is not None:
-            for label, credentials in initial_values.items():
-                self.add_credentials(label, credentials["username"], credentials["password"], credentials["email"])
+        # Write salt at top of file (base64 encoded)
+        with open(path, "w") as file:
+            file.write(base64.b64encode(self.salt).decode() + "\n")
 
-    # Load an encrypted credential file and decrypt components into dictionary
-    def load_credential_file(self, path):
+        # Add initial values if provided
+        if initial_values:
+            for label, creds in initial_values.items():
+                self.add_credentials(label, creds["username"], creds["password"], creds["email"])
+
+    # Load vault file, derive key from password and salt, and decrypt contents if password is correct
+    def load_credential_file(self, path, master_password):
         self.credential_file = path
+        with open(path, "r") as file:
+            lines = file.readlines()
 
-        with open(path, 'r') as file:
-            for line in file:
-                # Get encrypted components
-                label_enc, username_enc, password_enc, email_enc = line.split(" ")
+        # First line is the salt
+        self.salt = base64.b64decode(lines[0].strip())
+        self.key = self._derive_key(master_password, self.salt)
+        decrypter = Fernet(self.key)
 
-                # Decrypt components
-                decrypter = Fernet(self.key)
+        # Process each stored credential
+        for line in lines[1:]:
+            label_enc, username_enc, password_enc, email_enc = line.strip().split(" ")
+
+            try:
                 label_dec = decrypter.decrypt(label_enc.encode()).decode()
                 username_dec = decrypter.decrypt(username_enc.encode()).decode()
                 password_dec = decrypter.decrypt(password_enc.encode()).decode()
                 email_dec = decrypter.decrypt(email_enc.encode()).decode()
+            except InvalidToken:
+                raise ValueError("Invalid master password or corrupted file")
 
-                # Store data in dictionary
-                self.credential_dict[label_dec] = {
-                    "username": username_dec,
-                    "password": password_dec,
-                    "email": email_dec
-                }
+            self.credential_dict[label_dec] = {
+                "username": username_dec,
+                "password": password_dec,
+                "email": email_dec
+            }
     
     # Add new credentials
     def add_credentials(self, label, username, password, email):
-        # Add credentials to dictionary
+        if self.key is None:
+            raise ValueError("Vault is locked (no key derived)")
+
+        # Add to in-memory dict
         self.credential_dict[label] = {
             "username": username,
             "password": password,
             "email": email
         }
 
-        # Add credentials to file
-        if self.credential_file is not None:
-            with open(self.credential_file, 'a+') as file:
+        # Encrypt and append to file
+        encrypter = Fernet(self.key)
+        label_enc = encrypter.encrypt(label.encode()).decode()
+        username_enc = encrypter.encrypt(username.encode()).decode()
+        password_enc = encrypter.encrypt(password.encode()).decode()
+        email_enc = encrypter.encrypt(email.encode()).decode()
 
-                # Encrypt credentials
-                encrypter = Fernet(self.key)
-                label_enc = encrypter.encrypt(label.encode()).decode()
-                username_enc = encrypter.encrypt(username.encode()).decode()
-                password_enc = encrypter.encrypt(password.encode()).decode()
-                email_enc = encrypter.encrypt(email.encode()).decode()
-
-                # Write encrypted credentials to file
-                file.write(label_enc + " " + username_enc + " " + password_enc + " " + email_enc + "\n")
+        with open(self.credential_file, "a") as file:
+            file.write(f"{label_enc} {username_enc} {password_enc} {email_enc}\n")
 
     # Retrieve credentials by label from dictionary
     def get_credentials(self, label):
-        return self.credential_dict[label]
+        return self.credential_dict.get(label)
