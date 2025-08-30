@@ -7,6 +7,7 @@ from cryptography.fernet import Fernet, InvalidToken
 class CredentialManager:
     def __init__(self):
         self.key = None
+        self.cipher = None
         self.salt = None
         self.iterations = 390_000
         self.credential_file = None
@@ -31,10 +32,15 @@ class CredentialManager:
         self.credential_file = path
         self.salt = os.urandom(16)
         self.key = self._derive_key(master_password, self.salt)
+        self.cipher = Fernet(self.key)
 
-        # Write salt at top of file (base64 encoded)
+        # Write salt at top of file (base64 encoded) and vault header
         with open(path, "w") as file:
             file.write(base64.b64encode(self.salt).decode() + "\n")
+            
+            header = "VAULT_HEADER"
+            header_enc = self.cipher.encrypt(header.encode()).decode()
+            file.write(header_enc)
 
         # Add initial values if provided
         if initial_values:
@@ -50,18 +56,25 @@ class CredentialManager:
         # First line is the salt
         self.salt = base64.b64decode(lines[0].strip())
         self.key = self._derive_key(master_password, self.salt)
-        decrypter = Fernet(self.key)
+        self.cipher = Fernet(self.key)
+
+        # Check if master password is correct by decrypting vault header
+        try:
+            self.cipher.decrypt(lines[1])
+
+        except:
+            raise ValueError("Invalid master password or corrupted file")
 
         # Process each stored credential
-        for line in lines[1:]:
+        for line in lines[2:]:
             label_enc, username_enc, password_enc, email_enc = line.strip().split(" ")
 
             try:
-                label_dec = decrypter.decrypt(label_enc.encode()).decode()
-                username_dec = decrypter.decrypt(username_enc.encode()).decode()
-                password_dec = decrypter.decrypt(password_enc.encode()).decode()
-                email_dec = decrypter.decrypt(email_enc.encode()).decode()
-            except InvalidToken:
+                label_dec = self.cipher.decrypt(label_enc.encode()).decode()
+                username_dec = self.cipher.decrypt(username_enc.encode()).decode()
+                password_dec = self.cipher.decrypt(password_enc.encode()).decode()
+                email_dec = self.cipher.decrypt(email_enc.encode()).decode()
+            except:
                 raise ValueError("Invalid master password or corrupted file")
 
             self.credential_dict[label_dec] = {
@@ -95,3 +108,10 @@ class CredentialManager:
     # Retrieve credentials by label from dictionary
     def get_credentials(self, label):
         return self.credential_dict.get(label)
+    
+if __name__ == "__main__":
+    cm = CredentialManager()
+    try:
+        cm.load_credential_file("school.vault", "Jan122006!RTA")
+    except ValueError as ve:
+        print(f"Error: {str(ve)}")
