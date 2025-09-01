@@ -189,7 +189,10 @@ class CredentialManagerGUI:
         # Bottom frame with save and exit button
         frame_bottom = tk.Frame(self.vault_management_frame)
         frame_bottom.pack(padx=10, pady=10, fill="x")
-        tk.Button(frame_bottom, text="Save and Exit", command=self.create_start_frame).pack(ipadx=5, ipady=5)
+        tk.Button(frame_bottom, text="Save and Exit", command=self.exit_vault).pack(ipadx=5, ipady=5)
+
+        # Refresh the credential list to show contents
+        self.refresh_list()
 
     # Creates a new vault file
     def create_vault(self):
@@ -219,6 +222,11 @@ class CredentialManagerGUI:
         except Exception as e:
             print(f"Error: {str(e)}")
 
+    # Exits a vault and resets manager
+    def exit_vault(self):
+        self.manager.reset()
+        self.create_start_frame()
+
     def add_credential(self):
         label = self.add_entry_label.get()
         username = self.add_entry_user.get()
@@ -232,11 +240,13 @@ class CredentialManagerGUI:
             print(f"Error: {str(e)}")
             return
         
-        # Clear entries after add
+        # Clear entries after add and refresh credential list
         self.add_entry_label.delete(0, tk.END)
         self.add_entry_user.delete(0, tk.END)
         self.add_entry_pass.delete(0, tk.END)
         self.add_entry_email.delete(0, tk.END)
+
+        self.refresh_list()
 
     def load_edit_fields(self):
         self.edit_fields_frame.grid()
@@ -252,6 +262,16 @@ class CredentialManagerGUI:
         pass
 
         # TODO: Delete all credentials of given label
+
+    # Refreshes the credential list to show the current vault contents
+    def refresh_list(self):
+        # Clear current rows
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+
+        # Insert current credentials
+        for label, creds in self.manager.credential_dict.items():
+            self.tree.insert("", "end", values=(label, creds["username"], creds["password"], creds["email"]))
 
 if __name__ == "__main__":
     cmgui = CredentialManagerGUI()

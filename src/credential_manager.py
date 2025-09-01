@@ -132,6 +132,14 @@ class CredentialManager:
     def get_credentials(self, label):
         return self.credential_dict.get(label)
     
+    # Reset manager members back to default
+    def reset(self):
+        self.key = None
+        self.cipher = None
+        self.salt = None
+        self.credential_file = None
+        self.credential_dict = {}
+    
 if __name__ == "__main__":
     cm = CredentialManager()
     try:
