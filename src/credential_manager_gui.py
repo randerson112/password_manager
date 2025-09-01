@@ -20,7 +20,7 @@ class CredentialManagerGUI:
         self.frames = [self.start_frame, self.new_vault_frame, self.open_vault_frame, self.vault_management_frame]
 
         # Starting frame
-        self.create_vault_management_frame()
+        self.create_start_frame()
 
     # Clears window and sets a new frame
     def set_frame(self, new_frame):
@@ -130,15 +130,15 @@ class CredentialManagerGUI:
         tk.Label(frame_add, text="Password:").grid(row=2, column=0, sticky="e")
         tk.Label(frame_add, text="Email:").grid(row=3, column=0, sticky="e")
 
-        self.entry_label = tk.Entry(frame_add)
-        self.entry_user = tk.Entry(frame_add)
-        self.entry_pass = tk.Entry(frame_add, show="*")
-        self.entry_email = tk.Entry(frame_add)
+        self.add_entry_label = tk.Entry(frame_add)
+        self.add_entry_user = tk.Entry(frame_add)
+        self.add_entry_pass = tk.Entry(frame_add)
+        self.add_entry_email = tk.Entry(frame_add)
 
-        self.entry_label.grid(row=0, column=1, padx=5, pady=2)
-        self.entry_user.grid(row=1, column=1, padx=5, pady=2)
-        self.entry_pass.grid(row=2, column=1, padx=5, pady=2)
-        self.entry_email.grid(row=3, column=1, padx=5, pady=2)
+        self.add_entry_label.grid(row=0, column=1, padx=5, pady=2)
+        self.add_entry_user.grid(row=1, column=1, padx=5, pady=2)
+        self.add_entry_pass.grid(row=2, column=1, padx=5, pady=2)
+        self.add_entry_email.grid(row=3, column=1, padx=5, pady=2)
 
         tk.Button(frame_add, text="Confirm", command=self.add_credential).grid(row=4, column=0, columnspan=2, pady=10)
 
@@ -165,7 +165,7 @@ class CredentialManagerGUI:
 
         self.edit_entry_label = tk.Entry(self.edit_fields_frame)
         self.edit_entry_user = tk.Entry(self.edit_fields_frame)
-        self.edit_entry_pass = tk.Entry(self.edit_fields_frame, show="*")
+        self.edit_entry_pass = tk.Entry(self.edit_fields_frame)
         self.edit_entry_email = tk.Entry(self.edit_fields_frame)
 
         self.edit_entry_label.grid(row=0, column=1, padx=5, pady=2)
@@ -220,9 +220,23 @@ class CredentialManagerGUI:
             print(f"Error: {str(e)}")
 
     def add_credential(self):
-        pass
+        label = self.add_entry_label.get()
+        username = self.add_entry_user.get()
+        password = self.add_entry_pass.get()
+        email = self.add_entry_email.get()
 
-        # TODO: Add credentials to vault file from entry fields
+        # Add credentials using manager
+        try:
+            self.manager.add_credentials(label, username, password, email)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return
+        
+        # Clear entries after add
+        self.add_entry_label.delete(0, tk.END)
+        self.add_entry_user.delete(0, tk.END)
+        self.add_entry_pass.delete(0, tk.END)
+        self.add_entry_email.delete(0, tk.END)
 
     def load_edit_fields(self):
         self.edit_fields_frame.grid()

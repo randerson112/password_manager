@@ -103,6 +103,14 @@ class CredentialManager:
     def add_credentials(self, label, username, password, email):
         if self.key is None:
             raise ValueError("Vault is locked (no key derived)")
+        
+        # Check if any values are empty
+        if len(label) == 0 or len(username) == 0 or len(password) == 0 or len(email) == 0:
+            raise ValueError("One or more values is empty")
+        
+        # Check if label already exists
+        if label in self.credential_dict:
+            raise ValueError("Entry with that label already exists")
 
         # Add to in-memory dict
         self.credential_dict[label] = {
@@ -112,11 +120,10 @@ class CredentialManager:
         }
 
         # Encrypt and append to file
-        encrypter = Fernet(self.key)
-        label_enc = encrypter.encrypt(label.encode()).decode()
-        username_enc = encrypter.encrypt(username.encode()).decode()
-        password_enc = encrypter.encrypt(password.encode()).decode()
-        email_enc = encrypter.encrypt(email.encode()).decode()
+        label_enc = self.cipher.encrypt(label.encode()).decode()
+        username_enc = self.cipher.encrypt(username.encode()).decode()
+        password_enc = self.cipher.encrypt(password.encode()).decode()
+        email_enc = self.cipher.encrypt(email.encode()).decode()
 
         with open(self.credential_file, "a") as file:
             file.write(f"{label_enc} {username_enc} {password_enc} {email_enc}\n")
