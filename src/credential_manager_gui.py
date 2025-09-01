@@ -249,14 +249,55 @@ class CredentialManagerGUI:
         self.refresh_list()
 
     def load_edit_fields(self):
-        self.edit_fields_frame.grid()
-
-        # TODO: Load credentials into entry fields for editing
-
-    def edit_credential(self):
         self.edit_fields_frame.grid_remove()
 
-        # TODO: Edit credentials in vault with new values in edit entry fields
+        label_to_edit = self.edit_label_entry.get()
+
+        # Get credentials from manager
+        try:
+            credentials = self.manager.get_credentials(label_to_edit)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return
+        
+        # Show edit fields and fill with existing credentials
+        self.edit_fields_frame.grid()
+
+        self.edit_entry_label.delete(0, tk.END)
+        self.edit_entry_user.delete(0, tk.END)
+        self.edit_entry_pass.delete(0, tk.END)
+        self.edit_entry_email.delete(0, tk.END)
+
+        self.edit_entry_label.insert(0, label_to_edit)
+        self.edit_entry_user.insert(0, credentials["username"])
+        self.edit_entry_pass.insert(0, credentials["password"])
+        self.edit_entry_email.insert(0, credentials["email"])
+
+    def edit_credential(self):
+        label_to_edit = self.edit_label_entry.get()
+        new_label = self.edit_entry_label.get()
+        new_username = self.edit_entry_user.get()
+        new_password = self.edit_entry_pass.get()
+        new_email = self.edit_entry_email.get()
+
+        # Edit credentials in manager
+        try:
+            self.manager.edit_credentials(label_to_edit, new_label, new_username, new_password, new_email)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return
+        
+        # Delete text in entries and hide edit fields frame
+        self.edit_entry_label.delete(0, tk.END)
+        self.edit_entry_user.delete(0, tk.END)
+        self.edit_entry_pass.delete(0, tk.END)
+        self.edit_entry_email.delete(0, tk.END)
+        self.edit_label_entry.delete(0, tk.END)
+
+        self.edit_fields_frame.grid_remove()
+
+        # Refresh credentials list
+        self.refresh_list()
 
     def delete_credential(self):
         label = self.delete_label_entry.get()

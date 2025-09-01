@@ -128,6 +128,22 @@ class CredentialManager:
         with open(self.credential_file, "a") as file:
             file.write(f"{label_enc} {username_enc} {password_enc} {email_enc}\n")
 
+    def edit_credentials(self, label, new_label, new_user, new_pass, new_email):
+        if self.key is None:
+            raise ValueError("Vault is locked (no key derived)")
+        
+        # Check if any values are empty
+        if len(new_label) == 0 or len(new_user) == 0 or len(new_pass) == 0 or len(new_email) == 0:
+            raise ValueError("One or more values is empty")
+        
+        # Check if new label already exists
+        if new_label != label and new_label in self.credential_dict:
+            raise ValueError("Entry with that label already exists")
+
+        # Edit credentials in dictionary and vault file
+        self.delete_credentials(label)
+        self.add_credentials(new_label, new_user, new_pass, new_email)
+
     def delete_credentials(self, label):
         if self.key is None:
             raise ValueError("Vault is locked (no key derived)")
@@ -165,6 +181,9 @@ class CredentialManager:
 
     # Retrieve credentials by label from dictionary
     def get_credentials(self, label):
+        if label not in self.credential_dict:
+            raise ValueError("No entry exists with that label")
+        
         return self.credential_dict.get(label)
     
     # Reset manager members back to default
