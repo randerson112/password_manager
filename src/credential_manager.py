@@ -55,7 +55,7 @@ class CredentialManager:
             
             header = "VAULT_HEADER"
             header_enc = self.cipher.encrypt(header.encode()).decode()
-            file.write(header_enc)
+            file.write(header_enc + "\n")
 
     # Load vault file, derive key from password and salt, and decrypt contents if password is correct
     def load_credential_file(self, name, master_password):
@@ -76,7 +76,7 @@ class CredentialManager:
 
         # Check if master password is correct by decrypting vault header
         try:
-            self.cipher.decrypt(lines[1])
+            self.cipher.decrypt(lines[1].strip().encode())
 
         except:
             raise ValueError("Invalid master password")
@@ -128,6 +128,41 @@ class CredentialManager:
         with open(self.credential_file, "a") as file:
             file.write(f"{label_enc} {username_enc} {password_enc} {email_enc}\n")
 
+    def delete_credentials(self, label):
+        if self.key is None:
+            raise ValueError("Vault is locked (no key derived)")
+        
+        # Check if entry exists
+        if label not in self.credential_dict:
+            raise ValueError("Entry with that label does not exist")
+        
+        # Delete credentials from dictionary and vault file
+        del self.credential_dict[label]
+
+        with open(self.credential_file, "r") as file:
+            lines = file.readlines()
+
+        # Find line to delete
+        line_to_delete = 3
+        for line in lines[2:]:
+            label_enc = line.strip().split(" ")[0]
+            label_dec = self.cipher.decrypt(label_enc.encode()).decode()
+            if label == label_dec:
+                break
+
+            line_to_delete += 1
+
+        # Rewrite vault contents minus deleted line
+        with open(self.credential_file, "w") as file:
+            line_number = 1
+            for line in lines:
+                if line_number == line_to_delete:
+                    line_number += 1
+                    continue
+
+                file.write(line)
+                line_number += 1
+
     # Retrieve credentials by label from dictionary
     def get_credentials(self, label):
         return self.credential_dict.get(label)
@@ -139,10 +174,3 @@ class CredentialManager:
         self.salt = None
         self.credential_file = None
         self.credential_dict = {}
-    
-if __name__ == "__main__":
-    cm = CredentialManager()
-    try:
-        cm.load_credential_file("work.vault", "Jan122006")
-    except Exception as e:
-        print(f"Error: {str(e)}")

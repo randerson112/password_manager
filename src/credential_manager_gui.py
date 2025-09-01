@@ -259,9 +259,18 @@ class CredentialManagerGUI:
         # TODO: Edit credentials in vault with new values in edit entry fields
 
     def delete_credential(self):
-        pass
+        label = self.delete_label_entry.get()
 
-        # TODO: Delete all credentials of given label
+        try:
+            self.manager.delete_credentials(label)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return
+        
+        # Clear entry after deletion and refresh credential list
+        self.delete_label_entry.delete(0, tk.END)
+
+        self.refresh_list()
 
     # Refreshes the credential list to show the current vault contents
     def refresh_list(self):
