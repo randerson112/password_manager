@@ -1,16 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
-from credential_manager import CredentialManager
 
 class CredentialManagerGUI:
-    def __init__(self):
-        # Main window
-        self.root = tk.Tk()
-        self.root.title("Credential Manager")
-        self.root.geometry("900x750")
-
-        # Credential manager system
-        self.manager = CredentialManager()
+    def __init__(self, root, manager):
+        self.root = root
+        self.manager = manager
 
         # Frames
         self.start_frame = tk.Frame(self.root)
@@ -322,7 +316,3 @@ class CredentialManagerGUI:
         # Insert current credentials
         for label, creds in self.manager.credential_dict.items():
             self.tree.insert("", "end", values=(label, creds["username"], creds["password"], creds["email"]))
-
-if __name__ == "__main__":
-    cmgui = CredentialManagerGUI()
-    cmgui.root.mainloop()
