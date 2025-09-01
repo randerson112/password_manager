@@ -4,3 +4,6 @@
 
 # Pycache
 src/__pycache__/
+
+# Vaults directory
+.vaults/

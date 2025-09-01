@@ -20,7 +20,7 @@ class CredentialManagerGUI:
         self.frames = [self.start_frame, self.new_vault_frame, self.open_vault_frame, self.vault_management_frame]
 
         # Starting frame
-        self.create_vault_management_frame()
+        self.create_start_frame()
 
     # Clears window and sets a new frame
     def set_frame(self, new_frame):
@@ -130,15 +130,15 @@ class CredentialManagerGUI:
         tk.Label(frame_add, text="Password:").grid(row=2, column=0, sticky="e")
         tk.Label(frame_add, text="Email:").grid(row=3, column=0, sticky="e")
 
-        self.entry_label = tk.Entry(frame_add)
-        self.entry_user = tk.Entry(frame_add)
-        self.entry_pass = tk.Entry(frame_add, show="*")
-        self.entry_email = tk.Entry(frame_add)
+        self.add_entry_label = tk.Entry(frame_add)
+        self.add_entry_user = tk.Entry(frame_add)
+        self.add_entry_pass = tk.Entry(frame_add)
+        self.add_entry_email = tk.Entry(frame_add)
 
-        self.entry_label.grid(row=0, column=1, padx=5, pady=2)
-        self.entry_user.grid(row=1, column=1, padx=5, pady=2)
-        self.entry_pass.grid(row=2, column=1, padx=5, pady=2)
-        self.entry_email.grid(row=3, column=1, padx=5, pady=2)
+        self.add_entry_label.grid(row=0, column=1, padx=5, pady=2)
+        self.add_entry_user.grid(row=1, column=1, padx=5, pady=2)
+        self.add_entry_pass.grid(row=2, column=1, padx=5, pady=2)
+        self.add_entry_email.grid(row=3, column=1, padx=5, pady=2)
 
         tk.Button(frame_add, text="Confirm", command=self.add_credential).grid(row=4, column=0, columnspan=2, pady=10)
 
@@ -165,7 +165,7 @@ class CredentialManagerGUI:
 
         self.edit_entry_label = tk.Entry(self.edit_fields_frame)
         self.edit_entry_user = tk.Entry(self.edit_fields_frame)
-        self.edit_entry_pass = tk.Entry(self.edit_fields_frame, show="*")
+        self.edit_entry_pass = tk.Entry(self.edit_fields_frame)
         self.edit_entry_email = tk.Entry(self.edit_fields_frame)
 
         self.edit_entry_label.grid(row=0, column=1, padx=5, pady=2)
@@ -189,7 +189,10 @@ class CredentialManagerGUI:
         # Bottom frame with save and exit button
         frame_bottom = tk.Frame(self.vault_management_frame)
         frame_bottom.pack(padx=10, pady=10, fill="x")
-        tk.Button(frame_bottom, text="Save and Exit", command=self.create_start_frame).pack(ipadx=5, ipady=5)
+        tk.Button(frame_bottom, text="Save and Exit", command=self.exit_vault).pack(ipadx=5, ipady=5)
+
+        # Refresh the credential list to show contents
+        self.refresh_list()
 
     # Creates a new vault file
     def create_vault(self):
@@ -219,25 +222,106 @@ class CredentialManagerGUI:
         except Exception as e:
             print(f"Error: {str(e)}")
 
-    def add_credential(self):
-        pass
+    # Exits a vault and resets manager
+    def exit_vault(self):
+        self.manager.reset()
+        self.create_start_frame()
 
-        # TODO: Add credentials to vault file from entry fields
+    def add_credential(self):
+        label = self.add_entry_label.get()
+        username = self.add_entry_user.get()
+        password = self.add_entry_pass.get()
+        email = self.add_entry_email.get()
+
+        # Add credentials using manager
+        try:
+            self.manager.add_credentials(label, username, password, email)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return
+        
+        # Clear entries after add and refresh credential list
+        self.add_entry_label.delete(0, tk.END)
+        self.add_entry_user.delete(0, tk.END)
+        self.add_entry_pass.delete(0, tk.END)
+        self.add_entry_email.delete(0, tk.END)
+
+        self.refresh_list()
 
     def load_edit_fields(self):
-        self.edit_fields_frame.grid()
-
-        # TODO: Load credentials into entry fields for editing
-
-    def edit_credential(self):
         self.edit_fields_frame.grid_remove()
 
-        # TODO: Edit credentials in vault with new values in edit entry fields
+        label_to_edit = self.edit_label_entry.get()
+
+        # Get credentials from manager
+        try:
+            credentials = self.manager.get_credentials(label_to_edit)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return
+        
+        # Show edit fields and fill with existing credentials
+        self.edit_fields_frame.grid()
+
+        self.edit_entry_label.delete(0, tk.END)
+        self.edit_entry_user.delete(0, tk.END)
+        self.edit_entry_pass.delete(0, tk.END)
+        self.edit_entry_email.delete(0, tk.END)
+
+        self.edit_entry_label.insert(0, label_to_edit)
+        self.edit_entry_user.insert(0, credentials["username"])
+        self.edit_entry_pass.insert(0, credentials["password"])
+        self.edit_entry_email.insert(0, credentials["email"])
+
+    def edit_credential(self):
+        label_to_edit = self.edit_label_entry.get()
+        new_label = self.edit_entry_label.get()
+        new_username = self.edit_entry_user.get()
+        new_password = self.edit_entry_pass.get()
+        new_email = self.edit_entry_email.get()
+
+        # Edit credentials in manager
+        try:
+            self.manager.edit_credentials(label_to_edit, new_label, new_username, new_password, new_email)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return
+        
+        # Delete text in entries and hide edit fields frame
+        self.edit_entry_label.delete(0, tk.END)
+        self.edit_entry_user.delete(0, tk.END)
+        self.edit_entry_pass.delete(0, tk.END)
+        self.edit_entry_email.delete(0, tk.END)
+        self.edit_label_entry.delete(0, tk.END)
+
+        self.edit_fields_frame.grid_remove()
+
+        # Refresh credentials list
+        self.refresh_list()
 
     def delete_credential(self):
-        pass
+        label = self.delete_label_entry.get()
 
-        # TODO: Delete all credentials of given label
+        try:
+            self.manager.delete_credentials(label)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return
+        
+        # Clear entry after deletion and refresh credential list
+        self.delete_label_entry.delete(0, tk.END)
+
+        self.refresh_list()
+
+    # Refreshes the credential list to show the current vault contents
+    def refresh_list(self):
+        # Clear current rows
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+
+        # Insert current credentials
+        for label, creds in self.manager.credential_dict.items():
+            self.tree.insert("", "end", values=(label, creds["username"], creds["password"], creds["email"]))
 
 if __name__ == "__main__":
     cmgui = CredentialManagerGUI()
