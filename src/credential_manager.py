@@ -12,6 +12,11 @@ class CredentialManager:
         self.iterations = 390_000
         self.credential_file = None
         self.credential_dict = {}
+        self.vault_path = ".vaults"
+
+        # Create vaults directory if it does not exist
+        if not os.path.exists(self.vault_path):
+            os.mkdir(self.vault_path)
 
     # Derive a Fernet key from password and salt
     def _derive_key(self, password, salt):
@@ -28,29 +33,40 @@ class CredentialManager:
         return base64.urlsafe_b64encode(raw)
 
     # Create a credential file with salt and optional initial values
-    def create_credential_file(self, path, master_password, initial_values=None):
+    def create_credential_file(self, name, master_password):
+        path = self.vault_path + "/" + name
+
+        # Check if vault name already exists
+        if os.path.exists(path):
+            raise FileExistsError("Vault with that name already exists")
+        
+        # Check if a master password was entered
+        if len(master_password) == 0:
+            raise ValueError("Must provide a valid master password")
+        
         self.credential_file = path
         self.salt = os.urandom(16)
         self.key = self._derive_key(master_password, self.salt)
         self.cipher = Fernet(self.key)
 
         # Write salt at top of file (base64 encoded) and vault header
-        with open(path, "w") as file:
+        with open(self.credential_file, "w") as file:
             file.write(base64.b64encode(self.salt).decode() + "\n")
             
             header = "VAULT_HEADER"
             header_enc = self.cipher.encrypt(header.encode()).decode()
             file.write(header_enc)
 
-        # Add initial values if provided
-        if initial_values:
-            for label, creds in initial_values.items():
-                self.add_credentials(label, creds["username"], creds["password"], creds["email"])
-
     # Load vault file, derive key from password and salt, and decrypt contents if password is correct
-    def load_credential_file(self, path, master_password):
+    def load_credential_file(self, name, master_password):
+        path = self.vault_path + "/" + name
+
+        # Check if vault file exists
+        if not os.path.exists(path):
+            raise FileNotFoundError("No vault exists with that name")
+
         self.credential_file = path
-        with open(path, "r") as file:
+        with open(self.credential_file, "r") as file:
             lines = file.readlines()
 
         # First line is the salt
@@ -63,7 +79,7 @@ class CredentialManager:
             self.cipher.decrypt(lines[1])
 
         except:
-            raise ValueError("Invalid master password or corrupted file")
+            raise ValueError("Invalid master password")
 
         # Process each stored credential
         for line in lines[2:]:
@@ -75,7 +91,7 @@ class CredentialManager:
                 password_dec = self.cipher.decrypt(password_enc.encode()).decode()
                 email_dec = self.cipher.decrypt(email_enc.encode()).decode()
             except:
-                raise ValueError("Invalid master password or corrupted file")
+                raise ValueError("File may have been corrupted")
 
             self.credential_dict[label_dec] = {
                 "username": username_dec,
@@ -112,6 +128,6 @@ class CredentialManager:
 if __name__ == "__main__":
     cm = CredentialManager()
     try:
-        cm.load_credential_file("school.vault", "Jan122006!RTA")
-    except ValueError as ve:
-        print(f"Error: {str(ve)}")
+        cm.load_credential_file("work.vault", "Jan122006")
+    except Exception as e:
+        print(f"Error: {str(e)}")
