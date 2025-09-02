@@ -10,11 +10,12 @@ class CredentialManagerGUI:
         self.start_frame = tk.Frame(self.root)
         self.new_vault_frame = tk.Frame(self.root)
         self.open_vault_frame = tk.Frame(self.root)
+        self.settings_frame = tk.Frame(self.root)
         self.vault_management_frame = tk.Frame(self.root)
-        self.frames = [self.start_frame, self.new_vault_frame, self.open_vault_frame, self.vault_management_frame]
+        self.frames = [self.start_frame, self.new_vault_frame, self.open_vault_frame, self.settings_frame, self.vault_management_frame]
 
         # Starting frame
-        self.create_start_frame()
+        self.load_start_frame()
 
     # Clears window and sets a new frame
     def set_frame(self, new_frame):
@@ -24,7 +25,7 @@ class CredentialManagerGUI:
         new_frame.pack(fill="both", expand=True)
 
     # Builds the start frame UI elements
-    def create_start_frame(self):
+    def load_start_frame(self):
         self.set_frame(self.start_frame)
 
         # Destroy old widgets
@@ -35,15 +36,19 @@ class CredentialManagerGUI:
         start_center_frame.place(relx=0.5, rely=0.5, anchor="center")
 
         # Create nwe vault button
-        new_vault_button = tk.Button(start_center_frame, text="New Vault", command=self.create_new_vault_frame)
+        new_vault_button = tk.Button(start_center_frame, text="New Vault", command=self.load_new_vault_frame)
         new_vault_button.pack(pady=10, ipadx=5, ipady=10)
 
         # Open existing vault button
-        open_vault_button = tk.Button(start_center_frame, text="Open Vault", command=self.create_open_vault_frame)
+        open_vault_button = tk.Button(start_center_frame, text="Open Vault", command=self.load_open_vault_frame)
         open_vault_button.pack(pady=10, ipadx=5, ipady=10)
 
+        # Settings button
+        settings_button = tk.Button(start_center_frame, text="Settings", command=self.load_settings_frame)
+        settings_button.pack(pady=(30, 10), ipadx=5, ipady=10)
+
     # Builds the new vault frame UI elements
-    def create_new_vault_frame(self):
+    def load_new_vault_frame(self):
         self.set_frame(self.new_vault_frame)
 
         # Destroy old widgets
@@ -70,10 +75,10 @@ class CredentialManagerGUI:
 
         # Create and Back buttons
         tk.Button(new_vault_center_frame, text="Create Vault", command=self.create_vault).pack(pady=5, ipadx=5, ipady=5)
-        tk.Button(new_vault_center_frame, text="Back", command=self.create_start_frame).pack(pady=5, ipadx=5, ipady=5)
+        tk.Button(new_vault_center_frame, text="Back", command=self.load_start_frame).pack(pady=5, ipadx=5, ipady=5)
 
     # Builds the open vault frame UI elements
-    def create_open_vault_frame(self):
+    def load_open_vault_frame(self):
         self.set_frame(self.open_vault_frame)
 
         # Destroy old widgets
@@ -100,10 +105,47 @@ class CredentialManagerGUI:
 
         # Open and Back buttons
         tk.Button(open_vault_center_frame, text="Open Vault", command=self.open_vault).pack(pady=5, ipadx=5, ipady=5)
-        tk.Button(open_vault_center_frame, text="Back", command=self.create_start_frame).pack(pady=5, ipadx=5, ipady=5)
+        tk.Button(open_vault_center_frame, text="Back", command=self.load_start_frame).pack(pady=5, ipadx=5, ipady=5)
+
+    # Builds the settings frame UI elements
+    def load_settings_frame(self):
+        self.set_frame(self.settings_frame)
+
+        # Destroy old widgets
+        for widget in self.settings_frame.winfo_children():
+            widget.destroy()
+
+        settings_center_frame = tk.LabelFrame(self.settings_frame, text="Settings", labelanchor="n", padx=30, pady=30)
+        settings_center_frame.place(relx=0.5, rely=0.5, anchor="center")
+
+        # Vault directory label and entry
+        tk.Label(settings_center_frame, text="Vaults Directory:").pack(anchor="w", pady=(0, 5))
+        self.vaults_directory_entry = tk.Entry(settings_center_frame, width = 50)
+        self.vaults_directory_entry.pack(pady=(0, 5))
+
+        # Fill entry with current vaults path
+        self.vaults_directory_entry.insert(0, self.manager.vault_path)
+
+        # Other settings here
+
+        # Back/Save/Restore buttons
+        buttons_frame = tk.Frame(settings_center_frame)
+        buttons_frame.pack(pady=(30, 0), fill="x")
+        buttons_frame.columnconfigure(0, weight=1)
+        buttons_frame.columnconfigure(1, weight=1)
+        buttons_frame.columnconfigure(2, weight=1)
+
+        back_button = tk.Button(buttons_frame, text="Back", command=self.load_start_frame)
+        back_button.grid(row=0, column=0, ipadx=5, ipady=10, sticky="w")
+
+        save_button = tk.Button(buttons_frame, text="Save Changes", command=self.save_settings)
+        save_button.grid(row=0, column=1, ipadx=5, ipady=10)
+
+        restore_button = tk.Button(buttons_frame, text="Restore Defaults", command=self.restore_default_settings)
+        restore_button.grid(row=0, column=2, ipadx=5, ipady=10, sticky="e")
 
     # Builds the vault managment frame UI elements
-    def create_vault_management_frame(self):
+    def load_vault_management_frame(self):
         self.set_frame(self.vault_management_frame)
 
         # Destroy old widgets
@@ -208,7 +250,7 @@ class CredentialManagerGUI:
         # Create new vault file
         try:
             self.manager.create_credential_file(vault_name + ".vault", master_password)
-            self.create_vault_management_frame()
+            self.load_vault_management_frame()
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -222,7 +264,7 @@ class CredentialManagerGUI:
         # Open vault file
         try:
             self.manager.load_credential_file(vault_name + ".vault", master_password)
-            self.create_vault_management_frame()
+            self.load_vault_management_frame()
         except Exception as e:
             print(f"Error: {str(e)}")
 
@@ -240,10 +282,18 @@ class CredentialManagerGUI:
         else:
             self.open_master_password_entry.config(show="*")
 
+    # Saves settings to config.json
+    def save_settings(self):
+        pass
+
+    # Restores the default settings to config.json
+    def restore_default_settings(self):
+        pass
+
     # Exits a vault and resets manager
     def exit_vault(self):
         self.manager.reset()
-        self.create_start_frame()
+        self.load_start_frame()
 
     def add_credential(self):
         label = self.add_entry_label.get()
