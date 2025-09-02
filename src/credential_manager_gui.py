@@ -61,7 +61,12 @@ class CredentialManagerGUI:
         # Master password input
         tk.Label(new_vault_center_frame, text="Master Password:").pack(anchor="w", pady=(0, 5))
         self.create_master_password_entry = tk.Entry(new_vault_center_frame, width=30, show="*")
-        self.create_master_password_entry.pack(pady=(0, 15))
+        self.create_master_password_entry.pack(pady=(0, 5))
+
+        # Show password checkbox
+        self.new_vault_show = tk.BooleanVar()
+        self.new_vault_show_checkbox = tk.Checkbutton(new_vault_center_frame, text="Show Password", variable=self.new_vault_show, command=self.show_new_vault_password)
+        self.new_vault_show_checkbox.pack(pady=(0, 15))
 
         # Create and Back buttons
         tk.Button(new_vault_center_frame, text="Create Vault", command=self.create_vault).pack(pady=5, ipadx=5, ipady=5)
@@ -86,7 +91,12 @@ class CredentialManagerGUI:
         # Master password input
         tk.Label(open_vault_center_frame, text="Master Password:").pack(anchor="w", pady=(0, 5))
         self.open_master_password_entry = tk.Entry(open_vault_center_frame, width=30, show="*")
-        self.open_master_password_entry.pack(pady=(0, 15))
+        self.open_master_password_entry.pack(pady=(0, 5))
+
+        # Show password checkbox
+        self.open_vault_show = tk.BooleanVar()
+        self.open_vault_show_checkbox = tk.Checkbutton(open_vault_center_frame, text="Show Password", variable=self.open_vault_show, command=self.show_open_vault_password)
+        self.open_vault_show_checkbox.pack(pady=(0, 15))
 
         # Open and Back buttons
         tk.Button(open_vault_center_frame, text="Open Vault", command=self.open_vault).pack(pady=5, ipadx=5, ipady=5)
@@ -215,6 +225,20 @@ class CredentialManagerGUI:
             self.create_vault_management_frame()
         except Exception as e:
             print(f"Error: {str(e)}")
+
+    # Toggle master password visibility on new vault screen
+    def show_new_vault_password(self):
+        if self.new_vault_show.get():
+            self.create_master_password_entry.config(show="")
+        else:
+            self.create_master_password_entry.config(show="*")
+
+    # Toggle master password visibility on open vault screen
+    def show_open_vault_password(self):
+        if self.open_vault_show.get():
+            self.open_master_password_entry.config(show="")
+        else:
+            self.open_master_password_entry.config(show="*")
 
     # Exits a vault and resets manager
     def exit_vault(self):
