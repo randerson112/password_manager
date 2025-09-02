@@ -2,7 +2,8 @@ import os
 import base64
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import Fernet
+from config import get_vaults_directory
 
 class CredentialManager:
     def __init__(self):
@@ -12,7 +13,7 @@ class CredentialManager:
         self.iterations = 390_000
         self.credential_file = None
         self.credential_dict = {}
-        self.vault_path = ".vaults"
+        self.vault_path = get_vaults_directory()
 
         # Create vaults directory if it does not exist
         if not os.path.exists(self.vault_path):
