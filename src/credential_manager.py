@@ -3,7 +3,7 @@ import base64
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.fernet import Fernet
-from config import get_vaults_directory
+import config
 
 class CredentialManager:
     def __init__(self):
@@ -13,11 +13,8 @@ class CredentialManager:
         self.iterations = 390_000
         self.credential_file = None
         self.credential_dict = {}
-        self.vault_path = get_vaults_directory()
-
-        # Create vaults directory if it does not exist
-        if not os.path.exists(self.vault_path):
-            os.mkdir(self.vault_path)
+        self.settings = config.load_config()
+        self.vault_path = self.settings["vaults_directory"]
 
     # Derive a Fernet key from password and salt
     def _derive_key(self, password, salt):
@@ -35,6 +32,11 @@ class CredentialManager:
 
     # Create a credential file with salt and optional initial values
     def create_credential_file(self, name, master_password):
+
+        # Create vaults directory if it does not exist
+        if not os.path.exists(self.vault_path):
+            os.mkdir(self.vault_path)
+
         path = self.vault_path + "/" + name
 
         # Check if vault name already exists
