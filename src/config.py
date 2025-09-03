@@ -14,14 +14,17 @@ def load_config():
 
     # Create a local config file if it does not exist
     if not os.path.exists(USER_CONFIG_PATH):
-        USER_CONFIG_PATH.write_text(json.dumps(DEFAULT_CONFIG, indent=4))
+        write_default_settings()
         return DEFAULT_CONFIG
     
     # Retrieve configs from local config file
     with open(USER_CONFIG_PATH, "r") as f:
         return json.load(f)
 
-# Get the vaults directory from config
-def get_vaults_directory():
-    config = load_config()
-    return config.get("vaults_directory")
+# Updates the settings in config file
+def update_settings(new_settings):
+    USER_CONFIG_PATH.write_text(json.dumps(new_settings, indent=4))
+
+# Writes default settings to config file
+def write_default_settings():
+    USER_CONFIG_PATH.write_text(json.dumps(DEFAULT_CONFIG, indent=4))

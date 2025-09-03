@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+import config
 
 class CredentialManagerGUI:
     def __init__(self, root, manager):
@@ -284,11 +285,18 @@ class CredentialManagerGUI:
 
     # Saves settings to config.json
     def save_settings(self):
-        pass
+        vaults_directory = self.vaults_directory_entry.get()
+        self.manager.vault_path = vaults_directory
+        self.manager.settings["vaults_directory"] = vaults_directory
+        config.update_settings(self.manager.settings)
 
     # Restores the default settings to config.json
     def restore_default_settings(self):
-        pass
+        config.write_default_settings()
+        self.manager.settings = config.load_config()
+        self.manager.vault_path = self.manager.settings.get("vaults_directory")
+        self.vaults_directory_entry.delete(0, tk.END)
+        self.vaults_directory_entry.insert(0, self.manager.vault_path)
 
     # Exits a vault and resets manager
     def exit_vault(self):
